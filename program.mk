@@ -2,18 +2,14 @@
 # This file select a program to compile with make
 #==============================================================================
 
-# ---------- Example of path inside this file folder -------------------
+# ---------- Example of path -------------------------------------------
 # Program path
 #(relative to this folder, leave void if the program is in this folder)
 #PROGRAM_PATH = examples_c/sapi/gpio
 # Program name
 #PROGRAM_NAME = blinky
 
-# ---------- Example of path outside this file folder ------------------
-#PROGRAM_PATH = ../examples
-#PROGRAM_NAME = blinky
-
 # ---------- Your paths: -----------------------------------------------
 
-PROGRAM_PATH = 
-PROGRAM_NAME = testing_vs1053
+PROGRAM_PATH = my_programs
+PROGRAM_NAME = testing_vs1053b

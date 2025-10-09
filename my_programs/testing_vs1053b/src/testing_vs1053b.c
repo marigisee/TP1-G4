@@ -1,12 +1,14 @@
 /*=============================================================================
- * Program: testing_vs1053
- * Date: 2025/10/06
+ * Copyright (c) 2025, Marina Cuello <marina.cuello@alu.ing.unlp.edu.ar>
+ * All rights reserved.
+ * License:  (see LICENSE.txt)
+ * Date: 2025/10/09
  * Version: 1
  *===========================================================================*/
 
 /*=====[Inclusions of function dependencies]=================================*/
 
-#include "testing_vs1053.h"
+#include "testing_vs1053b.h"
 #include "sapi.h"
 
 /*=====[Definition macros of private constants]==============================*/
@@ -24,10 +26,14 @@ int main( void )
    // ----- Setup -----------------------------------
    boardInit();
 
-   // ----- Repeat for ever -------------------------
-   while( true ) {
-      gpioToggle(LED);
-      delay(500);
+   uartConfig(UART_USB, 115200);
+
+   printf("Header OK: TESTING_VS1053B_ID=0x%04X, get_id()=0x%04X\r\n",
+          TESTING_VS1053B_ID, testing_vs1053b_get_id());
+
+   while (TRUE)
+   {
+      delay(1000);
    }
 
    // YOU NEVER REACH HERE, because this program runs directly or on a
