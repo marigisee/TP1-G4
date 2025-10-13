@@ -7,37 +7,64 @@
  *===========================================================================*/
 
 /*=====[Inclusions of function dependencies]=================================*/
-
-#include "testing_vs1053b.h"
 #include "sapi.h"
+#include "board.h"
+#include "vs1053_lowlevel.h"
+#include "vs1053_midi.h"
+#include "loader_tables.h"      // para atab, dtab
+#include "rtmidi1053b_tables.h" // o el archivo que define dtab/atab
+#include <stdio.h>
 
-/*=====[Definition macros of private constants]==============================*/
+#define TICKRATE_HZ (1000)
+extern volatile uint32_t tick_ct;
 
-/*=====[Definitions of extern global variables]==============================*/
-
-/*=====[Definitions of public global variables]==============================*/
-
-/*=====[Definitions of private global variables]=============================*/
-
-/*=====[Main function, program entry point after power on or reset]==========*/
-
-int main( void )
+void delay(uint32_t ms)
 {
-   // ----- Setup -----------------------------------
-   boardInit();
+   uint32_t end = tick_ct + ms;
+   while (tick_ct < end)
+      __WFI();
+}
 
-   uartConfig(UART_USB, 115200);
+void SysTick_Handler(void)
+{
+   tick_ct++;
+}
 
-   printf("Header OK: TESTING_VS1053B_ID=0x%04X, get_id()=0x%04X\r\n",
-          TESTING_VS1053B_ID, testing_vs1053b_get_id());
+int main(void)
+{
+   SystemCoreClockUpdate();
+   Board_Init();
+   SysTick_Config(SystemCoreClock / TICKRATE_HZ);
 
-   while (TRUE)
+   // Inicializar VS1053
+   initVS1053GPIO();
+   initVS1053SPI();
+   hardResetVS();
+   softInitVS();
+
+   // Cargar plugin RT?MIDI en el VS1053
+   loadUserCodeFromTables();
+   startRTMIDI();
+
+   // Seleccionar instrumento: guitarra acústica (programa 24)
+   midiProgramChange(0, 24);
+
+   while (1)
    {
-      delay(1000);
-   }
+      // Secuencia arpegiada C4 ? E4 ? G4
 
-   // YOU NEVER REACH HERE, because this program runs directly or on a
-   // microcontroller and is not called by any Operating System, as in the 
-   // case of a PC program.
-   return 0;
+      midiNoteOn(0, 60, 100);
+      delay(200);
+      midiNoteOff(0, 60, 64);
+
+      midiNoteOn(0, 64, 100);
+      delay(200);
+      midiNoteOff(0, 64, 64);
+
+      midiNoteOn(0, 67, 100);
+      delay(200);
+      midiNoteOff(0, 67, 64);
+
+      delay(400); // pausa antes de volver a empezar
+   }
 }
