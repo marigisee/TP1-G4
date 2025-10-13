@@ -1,70 +1,27 @@
-/*=============================================================================
- * Copyright (c) 2025, Marina Cuello <marina.cuello@alu.ing.unlp.edu.ar>
- * All rights reserved.
- * License:  (see LICENSE.txt)
- * Date: 2025/10/09
- * Version: 1
- *===========================================================================*/
-
-/*=====[Inclusions of function dependencies]=================================*/
 #include "sapi.h"
-#include "board.h"
-#include "vs1053_lowlevel.h"
-#include "vs1053_midi.h"
-#include "loader_tables.h"      // para atab, dtab
-#include "rtmidi1053b_tables.h" // o el archivo que define dtab/atab
-#include <stdio.h>
-
-#define TICKRATE_HZ (1000)
-extern volatile uint32_t tick_ct;
-
-void delay(uint32_t ms)
-{
-   uint32_t end = tick_ct + ms;
-   while (tick_ct < end)
-      __WFI();
-}
-
-void SysTick_Handler(void)
-{
-   tick_ct++;
-}
+#include "vs1053b_sapi.h"
+#include "vs1053b_midi.h"
 
 int main(void)
 {
-   SystemCoreClockUpdate();
-   Board_Init();
-   SysTick_Config(SystemCoreClock / TICKRATE_HZ);
+   boardInit();
+   uartConfig(UART_USB, 115200); // consola (opcional)
 
-   // Inicializar VS1053
-   initVS1053GPIO();
-   initVS1053SPI();
-   hardResetVS();
-   softInitVS();
+   vs1053b_init_all();             // GPIO/SPI + reset + setup
+   vs1053b_set_volume(0x18, 0x18); // volumen cómodo
 
-   // Cargar plugin RT?MIDI en el VS1053
-   loadUserCodeFromTables();
-   startRTMIDI();
+   // Program Change: trompeta (56)
+   midiProgramChange(0, 56);
 
-   // Seleccionar instrumento: guitarra acústica (programa 24)
-   midiProgramChange(0, 24);
+   // Beep: C4 (60) por 500 ms
+   midiNoteOn(0, 60, 100);
+   delay(500);
+   midiNoteOff(0, 60, 64);
 
-   while (1)
+   // Loop inactivo
+   while (TRUE)
    {
-      // Secuencia arpegiada C4 ? E4 ? G4
-
-      midiNoteOn(0, 60, 100);
-      delay(200);
-      midiNoteOff(0, 60, 64);
-
-      midiNoteOn(0, 64, 100);
-      delay(200);
-      midiNoteOff(0, 64, 64);
-
-      midiNoteOn(0, 67, 100);
-      delay(200);
-      midiNoteOff(0, 67, 64);
-
-      delay(400); // pausa antes de volver a empezar
+      delay(1000);
    }
+   return 0;
 }
