@@ -16,4 +16,4 @@
 # ---------- Your paths: -----------------------------------------------
 
 PROGRAM_PATH = my_programs
-PROGRAM_NAME = testing_spi
+PROGRAM_NAME = testing_midi
