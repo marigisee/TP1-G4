@@ -24,7 +24,8 @@
 static inline uint8_t spi_trx(uint8_t b)
 {
     uint8_t r = 0;
-    spiWriteRead(VS_SPI, &b, &r, 1);
+    spiWrite(SPI0, &b, 1);   // transmite 1 byte
+    spiRead (SPI0, &r, 1);   // lee 1 byte (sAPI clockea con dummies 0xFF)
     return r;
 }
 

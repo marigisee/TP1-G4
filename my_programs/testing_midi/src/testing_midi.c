@@ -1,39 +1,58 @@
-/*=============================================================================
- * Copyright (c) 2025, Marina Cuello <marina.cuello@alu.ing.unlp.edu.ar>
- * All rights reserved.
- * License:  (see LICENSE.txt)
- * Date: 2025/10/13
- * Version: v1
- *===========================================================================*/
-
-/*=====[Inclusions of function dependencies]=================================*/
-
-#include "testing_midi.h"
+#include <stdio.h>
 #include "sapi.h"
+#include "lowlevel.h"
+#include "loader_tables.h"
+#include "midi_sdi.h"
 
-/*=====[Definition macros of private constants]==============================*/
+static void playChord(void)
+{               // C4 (60), E4 (64), G4 (67)
+   delay(5000); // espera 5 s antes de tocar (como en tu ejemplo)
+   midiNoteOn(0, 60, 100);
+   midiNoteOn(0, 64, 100);
+   midiNoteOn(0, 67, 100);
+   delay(2000); // suena 2 s
+   midiNoteOff(0, 60, 64);
+   midiNoteOff(0, 64, 64);
+   midiNoteOff(0, 67, 64);
+}
 
-/*=====[Definitions of extern global variables]==============================*/
 
-/*=====[Definitions of public global variables]==============================*/
+void setup(void) {
+   uartConfig(UART_USB, 115200);
+   setvbuf(stdout, NULL, _IONBF, 0);
+   printf("\r\n[VS1053 MIDI Test] Setup\r\n");
+   vs_pinsInit();
+   vs_spiInit();
+   hardResetVS();
+   softInitVS();
+   loadUserCodeFromTables();
+   startRTMIDI();
+   midiProgramChange(0, 1); // canal 0, instrumento 1
+}
 
-/*=====[Definitions of private global variables]=============================*/
-
-/*=====[Main function, program entry point after power on or reset]==========*/
-
-int main( void )
+int main(void)
 {
-   // ----- Setup -----------------------------------
    boardInit();
 
-   // ----- Repeat for ever -------------------------
-   while( true ) {
-      gpioToggle(LED);
-      delay(500);
-   }
 
-   // YOU NEVER REACH HERE, because this program runs directly or on a
-   // microcontroller and is not called by any Operating System, as in the 
-   // case of a PC program.
+   /* Activar interfaz nueva y (opcional) clock interno más alto */
+   // sciWrite(SCI_CLOCKF, 0x9800); delay(5);
+
+   // sciWrite(SCI_VOL, 0x2020);  // más bajo = más fuerte; 0x2020 ~ moderado
+
+   setup();
+   gpioInit(LED1, GPIO_OUTPUT);
+
+   printf("Setup finalizado.\r\n");
+   while (true)
+   {
+      playChord();
+      /* Blink suave entre acordes para ver que el programa sigue vivo */
+      for (int i = 0; i < 4; i++)
+      {
+         gpioToggle(LED1);
+         delay(250);
+      }
+   }
    return 0;
 }
