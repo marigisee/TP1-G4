@@ -72,11 +72,11 @@ static inline uint16_t sciRead(uint8_t reg){
    return ( ((uint16_t)rx[0]) << 8 ) | rx[1];
 }
 
-/* Enviar 2 bytes por SDI (XDCS). Tu flujo usa 0x00 + byte MIDI */
+/* Enviar 2 bytes por SDI (XDCS): 0x00 + byte MIDI */
 static inline void sdiWrite16(uint8_t hi, uint8_t lo){
    uint8_t b[2] = { hi, lo };
-   waitDREQ();
-   gpioWrite(PIN_XDCS, FALSE);
+   waitDREQ(); // espero que esté listo para recibir datos
+   gpioWrite(PIN_XDCS, FALSE); 
    spiWrite(VS_SPI, b, 2);
    gpioWrite(PIN_XDCS, TRUE);
 }
