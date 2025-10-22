@@ -4,6 +4,7 @@
 #include "loader_tables.h"
 #include "midi_sdi.h"
 
+
 static void playChord(void)
 {               // C4 (60), E4 (64), G4 (67)
    delay(5000); // espera 5 s antes de tocar (como en tu ejemplo)
