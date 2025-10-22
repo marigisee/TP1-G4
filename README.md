@@ -8,4 +8,12 @@ Se desea diseñar un dispositivo electrónico que permita la ejecución y simula
 
 El bloque portátil estará compuesto por un microcontrolador ESP32, una serie de pulsadores y un MPU6050 (acelerómetro y giroscopio) que permitirán al usuario ejecutar las notas o acordes deseados realizando diferentes gestos o movimientos con la mano.
 
-El bloque fijo estará compuesto por un microcontrolador ESP32, la placa EDU-CIAA y el módulo sintetizador MIDI VS1053B. Este bloque recibirá las notas o acordes ejecutados por el bloque portátil y los reproducirá a través del módulo sintetizador MIDI.s
+El bloque fijo estará compuesto por un microcontrolador ESP32, la placa EDU-CIAA y el módulo sintetizador MIDI VS1053B. Este bloque recibirá las notas o acordes ejecutados por el bloque portátil y los reproducirá a través del módulo sintetizador MIDI.
+
+### Miembros del equipo
+
+- Amadori, Franco
+- Giacoia, Pedro
+- Forden Jones, Ian
+- Chavez Sánchez, Máximo Nicolás
+- Cuello, Marina Giselle
