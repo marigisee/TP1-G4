@@ -4,6 +4,7 @@
 #include "loader_tables.h"
 #include "midi_sdi.h"
 #include "chords_map.h"
+#include "playing_chords.h"   // <-- agrega esto
 #include <string.h>
 
 typedef struct __attribute__((packed))
@@ -13,6 +14,9 @@ typedef struct __attribute__((packed))
    uint8_t botones[4];
 } IMUMessage;
 
+
+/* SOLO para debug: imprime las notas que se van a tocar */
+void debugPrintChord(const ButtonChord *chord);
 
 void setup(void)
 {
@@ -49,6 +53,8 @@ int main(void)
 
    // --> bucle principal
 
+   setup();
+
    while (true)
    {
       uint8_t byte;
@@ -60,10 +66,28 @@ int main(void)
          if (idx >= sizeof(IMUMessage)) // --> si se obtuvieron todos los bytes del struct
          {
             idx = 0; // reinicia el buffer
+            
+            char info[64];
+            snprintf(info, sizeof(info), "sizeof(IMUMessage)=%u\r\n", (unsigned)sizeof(IMUMessage));
+            uartWriteString(UART_USB, info);
 
-            uint8_t b = obtenerValorBotones(msg.botones); // --> se arma el valor binario de los 4 botones
+            // 3) Mostrar explícitamente los botones y calcular b a mano
+            char btn[64];
+            snprintf(btn, sizeof(btn), "botones=[%u %u %u %u]\r\n",
+            (unsigned)msg.botones[0], (unsigned)msg.botones[1],
+            (unsigned)msg.botones[2], (unsigned)msg.botones[3]);
+      
 
-            const ButtonChord *chord = getChordFromButtons(b); // --> se obtiene el acorde (nombre)
+            uint8_t b_func = obtenerValorBotones(msg.botones);
+
+            const ButtonChord *chord = getChordFromButtons(b_func); // --> se obtiene el acorde (nombre)
+
+            
+
+            char dbg[96];
+            snprintf(dbg, sizeof(dbg), "b=%u  -> %s (root=%u tipo=%d)\r\n", b_func, chord->nombre, chord->root, chord->tipo);
+            uartWriteString(UART_USB, dbg);
+
 
             // Si cambiÃ³ el acorde, detener el anterior y tocar el nuevo
             if (chord != lastChord)
@@ -71,8 +95,12 @@ int main(void)
                if (lastChord && lastChord->tipo != CHORD_NONE)
                   stopChord(lastChord); // --> NOTE OFFs de las notas del acorde anterior
 
-               if (chord->tipo != CHORD_NONE)
-                  playChord(chord); // NOTE ONs de las notas del nuevo acorde
+               if (chord->tipo != CHORD_NONE) {
+                   debugPrintChord(chord);   // imprime las notas que vas a mandar
+                   playChord(chord); // NOTE ONs de las notas del nuevo acorde
+
+                  }
+                  
 
                lastChord = chord;
 

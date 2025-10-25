@@ -9,10 +9,10 @@
  *
  * Cada entrada del arreglo corresponde a un valor binario
  * entre 0000 y 1111 (0 a 15), donde cada bit representa el
- * estado de un botón.
+ * estado de un boton.
  *
  * Ejemplo:
- *   b3 b2 b1 b0 = 0b1010 → índice 10 → "SOL menor"
+ *   b3 b2 b1 b0 = 0b1010 --> i�ndice 10 -> "SOL menor"
  * ========================================================== */
 const ButtonChord buttonChordMap[16] = {
     {"Nada", 0, CHORD_NONE},        // 0000 - sin botones presionados
@@ -38,35 +38,17 @@ const ButtonChord buttonChordMap[16] = {
  *        en un valor binario (nibble) de 4 bits.
  *
  * Ejemplo:
- *   botones = [1,0,1,0] → b = 0b0101 (5)
+ *   botones = [1,0,1,0] -> b = 0b0101 (5)
  *
  * @param msg  Estructura IMUMessage con los botones [0..3].
  * @return     Entero entre 0 y 15 (nibble que representa los botones).
  */
-static inline uint8_t obtenerValorBotones(IMUMessage msg)
+uint8_t obtenerValorBotones(const uint8_t botones[4])
 {
-    uint8_t b = ((msg.botones[3] & 1) << 3) |
-                ((msg.botones[2] & 1) << 2) |
-                ((msg.botones[1] & 1) << 1) |
-                ((msg.botones[0] & 1) << 0);
-    
+    uint8_t b = ((botones[3] & 1) << 3) |
+                ((botones[2] & 1) << 2) |
+                ((botones[1] & 1) << 1) |
+                ((botones[0] & 1) << 0);
     return b;
 }
-
-/**
- * @brief Devuelve un puntero al acorde correspondiente
- *        al valor binario de los botones.
- *
- * @param b Valor binario entre 0 y 15.
- * @return  Puntero a la entrada del acorde dentro de buttonChordMap.
- *
- * Si el valor está fuera de rango, devuelve la entrada 0 ("Nada").
- */
-static inline const ButtonChord *getChordFromButtons(uint8_t b)
-{
-    if (b < 16)
-        return &buttonChordMap[b];
-    return &buttonChordMap[0]; // por seguridad
-}
-
 #endif /* BUTTONS_MAP_H */

@@ -43,4 +43,7 @@ static inline const ButtonChord *getChordFromButtons(uint8_t b)
     return &buttonChordMap[(uint8_t)(b & 0x0F)];
 }
 
+/* Declaración del helper para empaquetar los 4 botones a un nibble (0..15) */
+uint8_t obtenerValorBotones(const uint8_t botones[4]);
+
 #endif /* CHORDS_MAP_H */

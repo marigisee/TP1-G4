@@ -20,4 +20,8 @@ void playChord(const ButtonChord *chord);
  */
 void stopChord(const ButtonChord *chord);
 
+
+/* SOLO para debug: imprime las notas que se van a tocar */
+void debugPrintChord(const ButtonChord *chord);
+
 #endif /* PLAYING_CHORDS_H */

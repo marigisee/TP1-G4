@@ -12,7 +12,7 @@
  */
 
 #include "playing_chords.h"
-#include "vs1053_midi.h"
+#include "midi_sdi.h"
 
 #define MIDI_CH 0            // Canal MIDI usado (0..15)
 #define MIDI_VELOCITY_ON 100 // Velocidad para NOTE ON (0..127)
@@ -76,4 +76,25 @@ void stopChord(const ButtonChord *chord)
     buildTriad(chord, notes, &n);
     for (uint8_t i = 0; i < n; i++)
         midiNoteOff(MIDI_CH, notes[i], MIDI_VELOCITY_OFF);
+}
+
+
+void debugPrintChord(const ButtonChord *chord) {
+    if (!chord || chord->tipo == CHORD_NONE) {
+        uartWriteString(UART_USB, "DEBUG chord: NONE\r\n");
+        return;
+    }
+    uint8_t notes[3], n = 0;
+    buildTriad(chord, notes, &n);
+
+    char line[96];
+    int len = 0;
+    len += snprintf(line+len, sizeof(line)-len,
+                    "DEBUG chord: %s (root=%u tipo=%d) -> notes:",
+                    chord->nombre, chord->root, chord->tipo);
+    for (uint8_t i = 0; i < n; i++) {
+        len += snprintf(line+len, sizeof(line)-len, " %u", notes[i]);
+    }
+    len += snprintf(line+len, sizeof(line)-len, " velON=100 ch=0\r\n");
+    uartWriteString(UART_USB, line);
 }
