@@ -1,5 +1,6 @@
 #pragma once
 #include "sapi.h"
+// #include "rtmidi1053b_tables.h"   
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -66,7 +67,7 @@ static inline uint16_t sciRead(uint8_t reg){
    waitDREQ();
    gpioWrite(PIN_XCS, FALSE);
    spiWrite(VS_SPI, cmd, sizeof(cmd));   // opcode+addr
-   spiRead (VS_SPI, rx,  sizeof(rx));    // lee 16 bits
+   spiRead(VS_SPI, rx,  sizeof(rx));    // lee 16 bits
    gpioWrite(PIN_XCS, TRUE);
 
    return ( ((uint16_t)rx[0]) << 8 ) | rx[1];

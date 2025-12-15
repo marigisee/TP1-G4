@@ -10,6 +10,7 @@ static inline void loadUserCodeFromTables(void){
    }
 }
 
+
 static inline void startRTMIDI(void){
    waitDREQ();
    sciWrite(SCI_AIADDR, 0x0050); // entry point RT-MIDI en VS1053B

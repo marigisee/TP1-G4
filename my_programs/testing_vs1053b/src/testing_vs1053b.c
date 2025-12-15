@@ -1,6 +1,6 @@
 #include "sapi.h"
 #include "vs1053b_sapi.h"
-#include "vs1053b_midi.h"
+#include "midi.h"
 
 int main(void)
 {

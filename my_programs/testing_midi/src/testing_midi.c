@@ -5,8 +5,11 @@
 #include "midi_sdi.h"
 
 
+// Este código funciona correctamente cuando el VS1053B esta siendo alimentado directamente por la EDUCIAA
+
 static void playChord(void)
 {               // C4 (60), E4 (64), G4 (67)
+   printf("Entro a playChord()");
    delay(5000); // espera 5 s antes de tocar (como en tu ejemplo)
    midiNoteOn(0, 60, 100);
    midiNoteOn(0, 64, 100);
@@ -38,7 +41,6 @@ int main(void)
 
    /* Activar interfaz nueva y (opcional) clock interno más alto */
    // sciWrite(SCI_CLOCKF, 0x9800); delay(5);
-
    // sciWrite(SCI_VOL, 0x2020);  // más bajo = más fuerte; 0x2020 ~ moderado
 
    setup();
