@@ -12,4 +12,4 @@
 # ---------- Your paths: -----------------------------------------------
 
 PROGRAM_PATH = my_programs
-PROGRAM_NAME = testing_uart_chords
+PROGRAM_NAME = test_latency_buttons_esp32_emisora
