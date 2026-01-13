@@ -1,10 +1,14 @@
 /*
- * ESP32 EMISORA - IMU + Botones de Acordes
+ * ESP32 EMISORA - IMU + Botones de Acordes con LEDs
  * 
  * Detecta rasgueos con IMU (MPU6050) y envía comando cuando:
  * 1. Se presiona el botón STRUM
  * 2. Se presiona al menos un botón de acorde
  * 3. Se detecta un rasgueo válido por magnitud del IMU
+ * 
+ * LEDs:
+ * - Rojo: Indica que el sistema está encendido
+ * - Verde: Parpadea cuando detecta un rasgueo
  */
 
 #include <WiFi.h>
@@ -14,7 +18,7 @@
 #include <Wire.h>
 
 // ===== MAC de la ESP32 Receptora =====
-uint8_t receiverAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; // CAMBIAR por MAC real
+uint8_t receiverAddress[] = {0xF0,0x24,0xF9,0x0C,0x4F,0x34}; // CAMBIAR por MAC real
 
 // ===== Pines IMU =====
 #define SDA_PIN 21
@@ -29,6 +33,10 @@ uint8_t receiverAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; // CAMBIAR por
 // ===== Pin Botón STRUM =====
 #define PIN_STRUM 27
 
+// ===== Pines LEDs =====
+#define LED_ROJO 12    // LED rojo para indicar sistema encendido
+#define LED_VERDE 13   // LED verde para indicar rasgueo detectado
+
 // ===== Configuración =====
 #define BUTTONS_ACTIVE_LOW true  // true si botones conectados a GND
 #define DEBOUNCE_MS 30
@@ -37,6 +45,9 @@ uint8_t receiverAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; // CAMBIAR por
 const float UMBRAL_NORMAL = 11.0f;  // Mínimo para rasgueo normal
 const float UMBRAL_FUERTE = 16.0f;  // Mínimo para rasgueo fuerte
 const uint32_t TIEMPO_ESPERA = 300; // ms entre detecciones (anti-rebote)
+
+// ===== Configuración LEDs =====
+const uint32_t LED_VERDE_TIEMPO = 100; // ms que se mantiene encendido el LED verde
 
 // ===== Velocities MIDI =====
 const uint8_t VEL_NORMAL = 80;
@@ -62,6 +73,10 @@ uint32_t lastChangeStrum = 0;
 // ===== Estado del IMU =====
 uint32_t ultimoRasgueoMs = 0;
 
+// ===== Estado LEDs =====
+uint32_t ledVerdeApagarMs = 0;  // Cuándo apagar el LED verde
+bool ledVerdeEncendido = false;
+
 // ===== ESP-NOW callback =====
 void OnDataSent(const wifi_tx_info_t *mac_addr, esp_now_send_status_t status) {
   // Opcional: debug
@@ -81,6 +96,13 @@ uint8_t buildChordMask() {
   if (isButtonPressed(PIN_B2)) mask |= (1 << 2);
   if (isButtonPressed(PIN_B3)) mask |= (1 << 3);
   return mask;
+}
+
+// ===== Encender LED verde por un tiempo =====
+void encenderLedVerde() {
+  digitalWrite(LED_VERDE, HIGH);
+  ledVerdeEncendido = true;
+  ledVerdeApagarMs = millis() + LED_VERDE_TIEMPO;
 }
 
 // ===== Enviar paquete =====
@@ -125,13 +147,24 @@ void setup() {
   pinMode(PIN_B3, INPUT_PULLUP);
   pinMode(PIN_STRUM, INPUT_PULLUP);
 
+  // Configurar pines de LEDs
+  pinMode(LED_ROJO, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+  
+  // Encender LED rojo (sistema encendido)
+  digitalWrite(LED_ROJO, HIGH);
+  digitalWrite(LED_VERDE, LOW);
+
   // Inicializar I2C para IMU
   Wire.begin(SDA_PIN, SCL_PIN);
 
   // Inicializar MPU6050
-  if (mpu.begin()) {
+  if (!mpu.begin()) {
     Serial.println("Error: No se encontró MPU6050");
-    while (1) delay(10);
+    while (1) {
+      digitalWrite(LED_ROJO, !digitalRead(LED_ROJO)); // LED rojo parpadea en error
+      delay(200);
+    }
   }
   Serial.println("MPU6050 OK");
 
@@ -144,7 +177,10 @@ void setup() {
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error inicializando ESP-NOW");
-    while (1) delay(100);
+    while (1) {
+      digitalWrite(LED_ROJO, !digitalRead(LED_ROJO)); // LED rojo parpadea en error
+      delay(100);
+    }
   }
 
   esp_now_register_send_cb(OnDataSent);
@@ -157,24 +193,36 @@ void setup() {
 
   if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Error agregando peer");
-    while (1) delay(100);
+    while (1) {
+      digitalWrite(LED_ROJO, !digitalRead(LED_ROJO)); // LED rojo parpadea en error
+      delay(100);
+    }
   }
 
   Serial.println("ESP32 Emisora lista (IMU + Botones)");
+  Serial.println("LED rojo: Encendido = Sistema funcionando");
+  Serial.println("LED verde: Se enciende al detectar rasgueo");
   delay(100);
 }
 
 void loop() {
   uint32_t now = millis();
 
-  // ========== 1. Leer IMU ==========
+  // ========== 1. Controlar LEDs ==========
+  // Apagar LED verde si ha pasado el tiempo
+  if (ledVerdeEncendido && now >= ledVerdeApagarMs) {
+    digitalWrite(LED_VERDE, LOW);
+    ledVerdeEncendido = false;
+  }
+
+  // ========== 2. Leer IMU ==========
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
   // Calcular magnitud de aceleración
   float magnitud = sqrt(sq(a.acceleration.x) + sq(a.acceleration.y) + sq(a.acceleration.z));
 
-  // ========== 2. Detectar rasgueo válido ==========
+  // ========== 3. Detectar rasgueo válido ==========
   uint8_t velocityDetectada = 0;
   bool rasgueoDetectado = false;
 
@@ -183,17 +231,21 @@ void loop() {
       velocityDetectada = VEL_FUERTE;
       rasgueoDetectado = true;
       ultimoRasgueoMs = now;
-      Serial.println("!!! RASGUEO FUERTE !!!");
+      encenderLedVerde();  // Encender LED verde
+      Serial.print("!!! RASGUEO FUERTE !!! Magnitud: ");
+      Serial.println(magnitud);
     }
-    else if (magnitud > UMBRAL_NORMAL) {
+    else if (magnitud >= UMBRAL_NORMAL) {
       velocityDetectada = VEL_NORMAL;
       rasgueoDetectado = true;
       ultimoRasgueoMs = now;
-      Serial.println("!!! RASGUEO NORMAL !!!");
+      encenderLedVerde();  // Encender LED verde
+      Serial.print("!!! RASGUEO NORMAL !!! Magnitud: ");
+      Serial.println(magnitud);
     }
   }
 
-  // ========== 3. Leer botón STRUM con debounce ==========
+  // ========== 4. Leer botón STRUM con debounce ==========
   bool rawStrum = digitalRead(PIN_STRUM);
   if (rawStrum != lastReadStrum) {
     lastReadStrum = rawStrum;
@@ -208,11 +260,11 @@ void loop() {
 
   bool strumPressed = BUTTONS_ACTIVE_LOW ? (strumEstable == LOW) : (strumEstable == HIGH);
 
-  // ========== 4. Leer botones de acordes ==========
+  // ========== 5. Leer botones de acordes ==========
   uint8_t chordMask = buildChordMask();
   bool hayAcorde = (chordMask != 0);
 
-  // ========== 5. Enviar si se cumplen las 3 condiciones ==========
+  // ========== 6. Enviar si se cumplen las 3 condiciones ==========
   // - STRUM presionado
   // - Al menos un botón de acorde presionado
   // - Rasgueo válido detectado por IMU
@@ -220,6 +272,6 @@ void loop() {
     sendPacket(chordMask, velocityDetectada);
   }
 
-  // Delay pequeño para estabilidad del loop (sin bloquear demasiado)
+  // Pequeña pausa para estabilidad (sin bloquear demasiado)
   delay(5);
 }
