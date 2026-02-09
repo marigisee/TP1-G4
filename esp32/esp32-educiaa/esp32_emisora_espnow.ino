@@ -20,7 +20,7 @@ typedef struct __attribute__((packed)) {
 } IMUMessage;
 
 // ==================== Callbacks ====================
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+void OnDataRecv(const esp_now_recv_info *info, const uint8_t *data, int len) {
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Enviado OK" : "Error al enviar");
 }
 

@@ -20,20 +20,23 @@ int main(void) {
    uint8_t* p = (uint8_t*)&msg;
    uint32_t idx = 0;
 
+   uint32_t rxCount = 0;
+   tick_t lastTick = 0;
+
    while (true) {
       uint8_t byte;
-      if (uartReadByte(UART_232, &byte)) {     
-         p[idx++] = byte;
-         if (idx >= sizeof(IMUMessage)) {
-            char buffer[200];
-            snprintf(buffer, sizeof(buffer),
-                     "Recibido: ax=%.2f ay=%.2f az=%.2f | gx=%.2f gy=%.2f gz=%.2f | B=[%d %d %d %d]\r\n",
-                     msg.ax, msg.ay, msg.az,
-                     msg.gx, msg.gy, msg.gz,
-                     msg.botones[0], msg.botones[1], msg.botones[2], msg.botones[3]);
-            uartWriteString(UART_USB, buffer);
-            idx = 0;
-         }
+
+      if (uartReadByte(UART_232, &byte)) {
+         rxCount++;
+      }
+
+      if (tickRead() - lastTick >= 1000) { // cada 1 segundo
+         lastTick = tickRead();
+         char buf[64];
+         snprintf(buf, sizeof(buf),
+                  "Bytes recibidos UART_232: %lu\r\n",
+                  (unsigned long)rxCount);
+         uartWriteString(UART_USB, buf);
       }
    }
 }
