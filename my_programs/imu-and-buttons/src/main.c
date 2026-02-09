@@ -29,7 +29,11 @@ static void setupVS1053(void)
    loadUserCodeFromTables();
    startRTMIDI();
 
-   midiProgramChange(0, 26); // 25 = Acoustic Guitar (GM)
+   midiControlChange(0, 0, 0);
+   midiControlChange(0, 32, 0);
+   midiProgramChange(0, 24);
+   midiControlChange(0, 7, 70);
+   midiControlChange(0, 11, 100);
    midiSchedInit();
 }
 

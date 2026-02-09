@@ -1,29 +1,28 @@
 /*
  * ESP32 RECEPTORA - Puente ESP-NOW -> UART EDU-CIAA
- * 
- * Recibe mensajes de la emisora por ESP-NOW y los reenvía
- * por UART a la EDU-CIAA manteniendo el framing (preámbulo + checksum).
+ * DEBUG:
+ * Imprime todo paquete recibido, validaciones y reenvío UART
  */
 
 #include <WiFi.h>
 #include <esp_now.h>
 
 // ===== UART hacia EDU-CIAA =====
-HardwareSerial CIAA(2);        // UART2
-static const int CIAA_TX = 17; // ESP32 TX -> RX EDU-CIAA
-static const int CIAA_RX = 16; // ESP32 RX <- TX EDU-CIAA (opcional)
+HardwareSerial CIAA(2);           // UART2 (ESP32 clásico)
+static const int CIAA_TX = 17;    // ESP32 TX -> RX EDU-CIAA
+static const int CIAA_RX = 16;    // ESP32 RX <- TX EDU-CIAA (opcional)
 static const uint32_t CIAA_BAUD = 115200;
 
-// ===== Estructura del mensaje (igual que emisora) =====
+// ===== Estructura del mensaje =====
 typedef struct __attribute__((packed)) {
-  uint8_t header1;    // 0xAA (sync)
-  uint8_t header2;    // 0x55 (sync)
-  uint8_t botones[4]; // b0..b3 (acordes)
-  uint8_t velocity;   // velocity MIDI
-  uint8_t checksum;   // XOR de bytes [2..N-2]
+  uint8_t header1;    // 0xAA
+  uint8_t header2;    // 0x55
+  uint8_t botones[4]; // b0..b3
+  uint8_t velocity;
+  uint8_t checksum;
 } ChordMessage;
 
-// Buffer compartido con callback
+// ===== Buffer compartido =====
 volatile bool hasMsg = false;
 ChordMessage lastMsg;
 
@@ -32,8 +31,20 @@ void OnDataRecv(const esp_now_recv_info_t *info,
                 const uint8_t *data,
                 int len)
 {
+  Serial.print("[RX RAW] len=");
+  Serial.print(len);
+  Serial.print(" bytes: ");
+
+  for (int i = 0; i < len; i++) {
+    if (data[i] < 16) Serial.print("0");
+    Serial.print(data[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+
   if (len != (int)sizeof(ChordMessage)) {
-    return; // descarta basura
+    Serial.println("[RX ERROR] Tamaño incorrecto, paquete descartado");
+    return;
   }
 
   memcpy((void*)&lastMsg, data, sizeof(lastMsg));
@@ -44,7 +55,6 @@ void setup() {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
 
-  // Imprimir MAC para configurar en emisora
   Serial.print("MAC Receptora: ");
   Serial.println(WiFi.macAddress());
 
@@ -52,7 +62,7 @@ void setup() {
   CIAA.begin(CIAA_BAUD, SERIAL_8N1, CIAA_RX, CIAA_TX);
 
   if (esp_now_init() != ESP_OK) {
-    Serial.println("Error inicializando ESP-NOW");
+    Serial.println("[ERROR] Inicializando ESP-NOW");
     while (true) delay(100);
   }
 
@@ -63,15 +73,33 @@ void setup() {
 void loop() {
   if (!hasMsg) return;
 
-  // Copia segura (evita race con callback)
+  // Copia segura
   noInterrupts();
   ChordMessage msg = lastMsg;
   hasMsg = false;
   interrupts();
 
+  Serial.println("----- PAQUETE RECIBIDO -----");
+  Serial.print("Header: ");
+  Serial.print(msg.header1, HEX);
+  Serial.print(" ");
+  Serial.println(msg.header2, HEX);
+
+  Serial.print("Botones: ");
+  Serial.print(msg.botones[3]); Serial.print(" ");
+  Serial.print(msg.botones[2]); Serial.print(" ");
+  Serial.print(msg.botones[1]); Serial.print(" ");
+  Serial.println(msg.botones[0]);
+
+  Serial.print("Velocity: ");
+  Serial.println(msg.velocity);
+
+  Serial.print("Checksum recibido: 0x");
+  Serial.println(msg.checksum, HEX);
+
   // Validar header
   if (msg.header1 != 0xAA || msg.header2 != 0x55) {
-    Serial.println("[ERROR] Header invalido, paquete descartado");
+    Serial.println("[ERROR] Header inválido, paquete descartado");
     return;
   }
 
@@ -82,21 +110,20 @@ void loop() {
     chk ^= p[i];
   }
 
+  Serial.print("Checksum calculado: 0x");
+  Serial.println(chk, HEX);
+
   if (chk != msg.checksum) {
-    Serial.println("[ERROR] Checksum invalido, paquete descartado");
+    Serial.println("[ERROR] Checksum inválido, paquete descartado");
     return;
   }
 
+  Serial.println("[OK] Paquete válido");
+
   // Envío binario crudo a la EDU-CIAA
   CIAA.write((uint8_t*)&msg, sizeof(msg));
-  delayMicroseconds(1000); // Pequeño delay para evitar overflow en CIAA
+  delayMicroseconds(1000);
 
-  // Debug
-  Serial.print("TX->CIAA botones=");
-  Serial.print(msg.botones[3]);
-  Serial.print(msg.botones[2]);
-  Serial.print(msg.botones[1]);
-  Serial.print(msg.botones[0]);
-  Serial.print(" vel=");
-  Serial.println(msg.velocity);
+  Serial.println("[TX UART] Paquete reenviado a EDU-CIAA");
+  Serial.println("-----------------------------");
 }
