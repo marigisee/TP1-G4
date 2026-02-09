@@ -1,13 +1,9 @@
 #include "playing_chords.h"
 #include "midi_sdi.h"
-#include "midi_scheduler.h"
 #include "sapi.h"
 
 #define MIDI_CH 0
 #define MIDI_VELOCITY_OFF 64
-
-#define STRUM_GAP_MS  10
-#define NOTE_LEN_MS   180
 
 static void buildTriad(const ButtonChord *chord, uint8_t notes[3], uint8_t *n)
 {
@@ -55,21 +51,21 @@ void stopChord(const ButtonChord *chord)
 
 void strumChord(const ButtonChord *chord, uint8_t velocity, uint32_t now_ms)
 {
+    (void)now_ms;
+
+    static const ButtonChord *prev = NULL;
+
+    if (prev)
+        stopChord(prev);
+
     if (!chord || chord->tipo == CHORD_NONE)
-        return;
-
-    uint8_t notes[3], n = 0;
-    buildTriad(chord, notes, &n);
-    if (n == 0) return;
-
-    for (uint8_t i = 0; i < n; i++)
     {
-        uint32_t t_on  = now_ms + (uint32_t)i * STRUM_GAP_MS;
-        uint32_t t_off = t_on  + NOTE_LEN_MS;
-
-        midiSchedNoteOn (t_on,  MIDI_CH, notes[i], velocity);
-        midiSchedNoteOff(t_off, MIDI_CH, notes[i], MIDI_VELOCITY_OFF);
+        prev = NULL;
+        return;
     }
+
+    playChord(chord, velocity);
+    prev = chord;
 }
 
 void debugPrintChord(const ButtonChord *chord)

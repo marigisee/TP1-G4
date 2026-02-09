@@ -28,12 +28,15 @@ static void setupVS1053(void)
    softInitVS();
    loadUserCodeFromTables();
    startRTMIDI();
+   for(volatile int i=0; i<200000; i++);
 
    midiControlChange(0, 0, 0);
    midiControlChange(0, 32, 0);
-   midiProgramChange(0, 24);
-   midiControlChange(0, 7, 70);
-   midiControlChange(0, 11, 100);
+   midiProgramChange(0, 25);      // Guitar acoustic steel
+   midiControlChange(0, 7, 127);  // Volume máximo
+   midiControlChange(0, 11, 127); // Expression máximo
+   midiControlChange(0, 64, 127); // Sustain pedal FULL
+
    midiSchedInit();
 }
 
